@@ -286,6 +286,25 @@ public:
   Return stop_props();
 
   /**
+   * @brief Blocking call to stop the propellers in an emergency
+   *
+   * In general, favor calling land(), which automatically calls stop_props()
+   * at the appropriate time, instead of manually calling this function.
+   *
+   * @pre Object has Permissions::READ_WRITE
+   * @pre Object has been connected via connect()
+   *
+   * @post Propellers are not spinning according to flight controller
+   *
+   * @return FlightControlInterface::Return
+   *
+   * @throw std::logic_error If any precondition is violated
+   * @throw std::runtime_error If tx/rx connection is lost
+   * @throw std::runtime_error If unable to stop props
+   */
+   Return emergency_stop();
+
+  /**
    * @brief Blocking call to takeoff
    *
    * This function attempts to spin the propellers via start_props() and to

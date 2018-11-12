@@ -401,6 +401,59 @@ FlightControlInterface::Return FlightControlInterface::stop_props()
   return ret_code;
 }
 
+FlightControlInterface::Return FlightControlInterface::emergency_stop()
+{
+    std::lock_guard<std::mutex> lock(command_mutex_);
+
+    try
+    {
+      enforce_connected_precondition();
+      enforce_write_precondition();
+      enforce_tx_connection_invariant();
+    }
+    catch (...)
+    {
+      print_error(__PRETTY_FUNCTION__);
+      throw;
+    }
+
+    Return ret_code = Return::FAILURE;
+    if (FlightControlInterface::ok())
+    {
+      bool finished = false;
+      while (!finished && FlightControlInterface::ok())
+      {
+        static int stop_try_cntr = 0;
+        if (scdts_.get().general_status.props_state == SN_PROPS_STATE_SPINNING)
+        {
+          sn_stop_props();
+          if (++stop_try_cntr > 10)
+          {
+            print_error(__PRETTY_FUNCTION__);
+            throw(std::runtime_error("could not stop props"));
+          }
+        }
+
+        if (scdts_.get().general_status.props_state == SN_PROPS_STATE_NOT_SPINNING)
+        {
+          finished = true;
+          ret_code = Return::SUCCESS;
+        }
+
+        usleep(2e4);
+      }
+    }
+
+    if (ret_code == Return::FAILURE)
+    {
+      print_error(__PRETTY_FUNCTION__);
+      throw(std::runtime_error("lost connection"));
+    }
+
+    return ret_code;
+}
+
+
 FlightControlInterface::Return FlightControlInterface::takeoff()
 {
   return takeoff(TakeoffConfig());
